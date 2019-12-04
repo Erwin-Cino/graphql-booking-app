@@ -2,10 +2,11 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const graphqlHttp = require("express-graphql");
 const { buildSchema } = require("graphql");
+const mongoose = require("mongoose");
+
+const Event = require("./models/event");
 
 const app = express();
-
-let events = [];
 
 app.use(bodyParser.json());
 
@@ -34,6 +35,7 @@ app.use(
 
         type RootMutation {
             createEvent(inputOfEvent: EventInput): Event
+        }
 
         schema {
             query: RootQuery
@@ -42,23 +44,45 @@ app.use(
     `),
     rootValue: {
       //resolver
-      events: () => {
-        return events;
+      events: async () => {
+        try {
+          const eventsData = await Event.find();
+          return eventsData;
+        } catch (err) {
+          console.log(err);
+          throw err;
+        }
       },
       createEvent: args => {
-        const event = {
-          _id: Math.random().toString(),
+        const event = new Event({
           title: args.inputOfEvent.title,
           description: args.inputOfEvent.description,
           price: +args.inputOfEvent.price,
-          date: args.inputOfEvent.date
-        };
-        events.push(event);
-        return event;
+          date: new Date(args.inputOfEvent.date)
+        });
+        return event
+          .save()
+          .then(res => {
+            console.log(res);
+            return { ...res._doc };
+          })
+          .catch(err => {
+            console.log(err);
+            throw err;
+          });
       }
     },
     graphiql: true
   })
 );
 
-app.listen(3000);
+mongoose
+  .connect(
+    `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0-hanrf.mongodb.net/${process.env.MONGO_DB}?retryWrites=true&w=majority`
+  )
+  .then(() => {
+    app.listen(3000);
+  })
+  .catch(err => {
+    console.log(err);
+  });
