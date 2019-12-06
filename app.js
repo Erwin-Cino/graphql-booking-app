@@ -9,6 +9,26 @@ const Event = require("./models/event");
 const app = express();
 
 app.use(bodyParser.json());
+const connectDB = async () => {
+  try {
+    await mongoose.connect(
+      `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0-hanrf.mongodb.net/${process.env.MONGO_DB}?retryWrites=true&w=majority`,
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        useCreateIndex: true,
+        useFindAndModify: false
+      }
+    );
+    console.log("MongoDB Connected");
+  } catch (err) {
+    console.log(err.message);
+    //Exit process with failure
+    process.exit(1);
+  }
+};
+
+connectDB();
 
 app.use(
   "/graphql",
@@ -76,13 +96,5 @@ app.use(
   })
 );
 
-mongoose
-  .connect(
-    `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0-hanrf.mongodb.net/${process.env.MONGO_DB}?retryWrites=true&w=majority`
-  )
-  .then(() => {
-    app.listen(3000);
-  })
-  .catch(err => {
-    console.log(err);
-  });
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server started on ${PORT}`));
